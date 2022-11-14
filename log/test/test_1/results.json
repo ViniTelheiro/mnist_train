@@ -1,5 +1,0 @@
-{
-  "checkpoint": "./log/train/train_1/epoch67/chekpoint.pth",
-  "accuracy": 0.9748402555910544,
-  "precision": 0.9748402555910544
-}
