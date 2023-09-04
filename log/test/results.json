@@ -1,4 +1,0 @@
-{
-  "checkpoint": "./log/train/train2/best_model.pth",
-  "acc": 0.9910143769968051
-}
