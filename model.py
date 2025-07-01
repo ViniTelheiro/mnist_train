@@ -18,11 +18,11 @@ class CNN(nn.Module):
             nn.MaxPool2d(kernel_size=2),
         )
 
-        self.classifier1 = nn.Sequential(nn.Linear(512, 10), nn.ReLU())
+        self.classifier1 = nn.Sequential(nn.Linear(384, 10), nn.ReLU())
 
     def forward(self, x):
         x = self.conv1(x)
         x = self.conv2(x)
-        x = x.reshape(x.size(0), -1)
+        x = x.flatten(start_dim=1)
         x = self.classifier1(x)
         return x

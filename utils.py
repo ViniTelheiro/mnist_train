@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import itertools
+from loguru import logger
 
 
 def plot_graph(path: str, y_label: str, x_label: str, **kwargs):
@@ -12,7 +13,7 @@ def plot_graph(path: str, y_label: str, x_label: str, **kwargs):
     plt.ylabel(y_label)
     plt.xlabel(x_label)
     plt.savefig(path)
-    print(f"Graph saved in {path}")
+    logger.info(f"Graph saved in {path}")
     plt.clf()
 
 

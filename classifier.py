@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 import torch
 import torch.nn.functional as F
 import lightning.pytorch as pl
@@ -7,10 +7,10 @@ import numpy as np
 
 
 class TrainerClassifier(pl.LightningModule):
-    def __init__(self, model: torch.nn.Module) -> None:
+    def __init__(self, model: torch.nn.Module, config: Dict[str, Any]) -> None:
         super().__init__()
         self.model = model
-
+        self.config = config
         self.losses = {"train": [], "val": []}
         self.acc = []
         self.validation_step_outputs = {"loss": [], "acc": []}
@@ -27,7 +27,11 @@ class TrainerClassifier(pl.LightningModule):
         return loss
 
     def configure_optimizers(self) -> Any:
-        optimizer = torch.optim.SGD(self.parameters(), lr=1e-3, momentum=0.9)
+        optimizer = torch.optim.SGD(
+            self.parameters(),
+            lr=self.config["learning-rate"],
+            momentum=self.config["momentum"],
+        )
         return optimizer
 
     def validation_step(self, batch, batch_idx):
@@ -38,10 +42,10 @@ class TrainerClassifier(pl.LightningModule):
         self.validation_step_outputs["loss"].append(loss.item())
 
         predicted = torch.argmax(output, -1)
-        acc = accuracy_score(labels, predicted)
+        acc = accuracy_score(labels.detach().cpu(), predicted.detach().cpu())
         self.validation_step_outputs["acc"].append(acc)
 
-        self.log("val_loss", loss, True)
+        self.log_dict({"val_loss": loss, "acc": acc}, True)
 
         return loss
 
@@ -49,6 +53,9 @@ class TrainerClassifier(pl.LightningModule):
         features, labels = batch
         output = self.model(features)
         predicted = torch.argmax(output, -1)
+
+        labels = labels.detach().cpu()
+        predicted = predicted.detach().cpu()
 
         acc = accuracy_score(labels, predicted)
         cm = confusion_matrix(labels, predicted, labels=range(1, 10))

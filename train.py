@@ -1,70 +1,70 @@
-from lightning.pytorch.utilities.types import STEP_OUTPUT
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
-import argparse
 import os
 from torch.utils.data import DataLoader
+from typing import Dict, Any
+import yaml
+import torch
 
 from classifier import TrainerClassifier
 from utils import plot_graph
 from dataset import get_train_dataset
 from model import CNN
 
-
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=32,
-        help="size of the trainning and validation batch.",
-    )
-    parser.add_argument(
-        "--num_workers", type=int, default=0, help="Dataloader num_worker value"
-    )
-
-    return parser.parse_args()
+torch.set_float32_matmul_precision("medium")
 
 
-def trainer(batch_size: int, num_workers: int):
+def trainer(config: Dict[str, Any]):
     train_dataset, val_dataset = get_train_dataset()
 
     train_dataloader = DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers
+        train_dataset,
+        batch_size=config["batch-size"],
+        shuffle=True,
+        num_workers=config["n-workers"],
     )
     val_dataloader = DataLoader(
-        val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers
+        val_dataset,
+        batch_size=config["batch-size"],
+        shuffle=False,
+        num_workers=config["n-workers"],
     )
 
     checkpoint_dir = "./checkpoints"
     if not os.path.isdir(checkpoint_dir):
         os.makedirs(checkpoint_dir)
 
-    early_stop_callback = EarlyStopping(
-        monitor="val_loss",
-        patience=10,
-        verbose=True,
-        mode="min",
-    )
-
+    callbacks = []
     checkpoint_callback = ModelCheckpoint(
         dirpath=checkpoint_dir,
-        monitor="val_loss",
-        mode="min",
+        monitor=config["checkpoint"]["monitor"],
+        mode=config["checkpoint"]["mode"],
         filename="best",
         save_last=False,
     )
+    callbacks.append(checkpoint_callback)
+
+    if config["checkpoint"]["patience"] > 0:
+        early_stop_callback = EarlyStopping(
+            monitor=config["checkpoint"]["monitor"],
+            patience=config["checkpoint"]["patience"],
+            verbose=True,
+            mode=config["checkpoint"]["mode"],
+        )
+        callbacks.append(early_stop_callback)
 
     model = CNN()
 
-    train_classifier = TrainerClassifier(model=model)
+    train_classifier = TrainerClassifier(model=model, config=config)
 
     trainer = pl.Trainer(
+        accelerator="gpu" if torch.cuda.is_available() else "cpu",
+        devices="auto",
         logger=False,
-        callbacks=[checkpoint_callback, early_stop_callback],
+        callbacks=callbacks,
         enable_progress_bar=True,
-        min_epochs=10,
-        max_epochs=100,
+        min_epochs=config["epochs"]["min"],
+        max_epochs=config["epochs"]["max"],
     )
 
     trainer.fit(
@@ -94,6 +94,7 @@ def trainer(batch_size: int, num_workers: int):
 
 
 if __name__ == "__main__":
-    args = get_args()
+    with open("./config.yaml", "r") as config_file:
+        config = yaml.load(config_file, Loader=yaml.SafeLoader)
 
-    trainer(batch_size=args.batch_size, num_workers=args.num_workers)
+    trainer(config=config)

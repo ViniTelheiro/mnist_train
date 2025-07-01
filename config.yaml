@@ -1,0 +1,11 @@
+batch-size: 32
+n-workers: 4
+learning-rate: 1.e-3
+momentum: 0.9
+checkpoint:
+  patience: 10 #set 0 to disable early-stop callback
+  monitor: "val_loss" # [val_loss, acc]
+  mode: "min" # [min, max]
+epochs:
+  min: 10
+  max: 100

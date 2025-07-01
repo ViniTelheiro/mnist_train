@@ -5,6 +5,8 @@ from torchvision.datasets import MNIST
 import os
 from sklearn.model_selection import train_test_split
 
+IMAGE_SIZE = [26, 28]
+
 
 class CNN_Dataset(Dataset):
     def __init__(self, dataset) -> None:
@@ -32,7 +34,10 @@ class CNN_Dataset(Dataset):
 
 
 def get_train_dataset() -> list:
-    transform = transforms.Compose([transforms.Resize((28, 28)), transforms.ToTensor()])
+    global IMAGE_SIZE
+    transform = transforms.Compose(
+        [transforms.Resize(IMAGE_SIZE), transforms.ToTensor()]
+    )
 
     download = False
     if not os.path.isdir("./data"):
@@ -41,16 +46,17 @@ def get_train_dataset() -> list:
 
     dataset = MNIST(root="./data", train=True, transform=transform, download=download)
 
-
-    train_dataset, val_dataset = train_test_split(
-        dataset, test_size=0.1, shuffle=True
-    )
+    train_dataset, val_dataset = train_test_split(dataset, test_size=0.1, shuffle=True)
     train_dataset = CNN_Dataset(train_dataset)
     val_dataset = CNN_Dataset(val_dataset)
     return [train_dataset, val_dataset]
 
+
 def get_test_dataset() -> CNN_Dataset:
-    transform = transforms.Compose([transforms.Resize((28, 28)), transforms.ToTensor()])
+    global IMAGE_SIZE
+    transform = transforms.Compose(
+        [transforms.Resize(IMAGE_SIZE), transforms.ToTensor()]
+    )
 
     download = False
     if not os.path.isdir("./data"):
